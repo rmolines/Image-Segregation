@@ -1,7 +1,0 @@
-/home/rmolines/github/imgseg/projeto/segmentacao_sequencial/CMakeFiles/install/strip.dir
-/home/rmolines/github/imgseg/projeto/segmentacao_sequencial/CMakeFiles/install/local.dir
-/home/rmolines/github/imgseg/projeto/segmentacao_sequencial/CMakeFiles/gpu_seg.dir
-/home/rmolines/github/imgseg/projeto/segmentacao_sequencial/CMakeFiles/rebuild_cache.dir
-/home/rmolines/github/imgseg/projeto/segmentacao_sequencial/CMakeFiles/edit_cache.dir
-/home/rmolines/github/imgseg/projeto/segmentacao_sequencial/CMakeFiles/install.dir
-/home/rmolines/github/imgseg/projeto/segmentacao_sequencial/CMakeFiles/list_install_components.dir

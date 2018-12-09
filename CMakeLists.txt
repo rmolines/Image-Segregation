@@ -4,11 +4,11 @@ project(gpu_seg LANGUAGES CUDA CXX)
 set (CMAKE_CXX_STANDARD 11)
 
 # find CUDA
-find_package( CUDA 10.0 EXACT REQUIRED)
+find_package( CUDA 9.1 EXACT REQUIRED)
 
 if (CUDA_FOUND)
     message("CUDA found")
-    SET(NVGRAPH_INCLUDE_DIRS "/usr/local/cuda-10.0/targets/x86_64-linux/include" ${NVGRAPH_INCLUDE_DIRS})
+    SET(NVGRAPH_INCLUDE_DIRS "/usr/local/cuda-9.1/include" ${NVGRAPH_INCLUDE_DIRS})
     #include(FindCUDA)
     INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
     INCLUDE_DIRECTORIES(${NVGRAPH_INCLUDE_DIRS})
