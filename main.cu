@@ -6,6 +6,7 @@
 #include "nvgraph.h"
 #include <cstdio>
 #include <cmath>
+#include <algorithm>
 
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
@@ -121,7 +122,7 @@ void check(nvgraphStatus_t status) {
     }
 }
 
-float *SSSP(imagem *img, int source) {
+float *SSSP(imagem *img, vector<int> seeds) {
     std::priority_queue<custo_caminho, std::vector<custo_caminho>, compare_custo_caminho > Q;
     double *custos = new double[img->total_size];
     int *predecessor = new int[img->total_size];
@@ -159,6 +160,12 @@ float *SSSP(imagem *img, int source) {
             int vertex = j + i * img->cols;
 
             
+            if (find(begin(seeds), end(seeds), vertex) != end(seeds)) {
+                source_indices_h.push_back(img->total_size);
+                weights_h.push_back(0.0);
+                offset++;
+            }
+
             if (i > 0) {
                 int acima = vertex - img->cols;
                 double custo_acima = get_edge(img, vertex, acima);
@@ -197,20 +204,6 @@ float *SSSP(imagem *img, int source) {
     const int nnz = source_indices_h.size();
     destination_offsets_h.push_back(offset);
 
-    // cout << "sources" << endl;
-    // for (int i=0; i<source_indices_h.size(); i++){
-    //     cout << source_indices_h[i] << endl;
-    // }
-
-    // cout << endl << "destinations" << endl;
-    // for (int i=0; i<destination_offsets_h.size(); i++){
-    //     cout << destination_offsets_h[i] <<  endl;
-    // }
-
-    // cout << endl << "weights" << endl;
-    // for (int i=0; i<weights_h.size(); i++){
-    //     cout << weights_h[i] << endl;
-    // }
 
     // Init host data
     sssp_1_h = (float*)malloc(n*sizeof(float));
@@ -231,7 +224,7 @@ float *SSSP(imagem *img, int source) {
     check(nvgraphSetEdgeData(handle, graph, (void*)&weights_h[0], 0));
 
     // Solve
-    check(nvgraphSssp(handle, graph, 0,  &source, 0));
+    check(nvgraphSssp(handle, graph, 0,  &img->total_size, 0));
 
     // Get and print result
     check(nvgraphGetVertexData(handle, graph, (void*)sssp_1_h, 0));
@@ -262,28 +255,28 @@ int main(int argc, char **argv) {
 
     
     int n_fg, n_bg;
+    vector<int> seeds_fg, seeds_bg;
     int x, y;
     
-    // std::cin >> n_fg >> n_bg;
-    n_bg = 1;
-    n_fg = 1;
-    assert(n_fg == 1);
-    assert(n_bg == 1);
+    std::cin >> n_fg >> n_bg;
+
+    for (int k = 0; k < n_fg; k++) {
+        std::cin >> x >> y;
+        int seed_fg = y * img->cols + x;
+        seeds_fg.push_back(seed_fg);
+    }
+     
+    for (int k = 0; k < n_bg; k++) {  
+        std::cin >> x >> y;
+        int seed_bg = y * img->cols + x;
+        seeds_bg.push_back(seed_bg);
+    }
     
-    // std::cin >> x >> y;
-    x = 70;
-    y = 50;
-    int seed_fg = y * img->cols + x;
-    
-    // std::cin >> x >> y;
-    x = 60;
-    y = 130;
-    int seed_bg = y * img->cols + x;
     
     blur(img);
 
-    float *fg = SSSP(img, seed_fg);
-    float *bg = SSSP(img, seed_bg);
+    float *fg = SSSP(img, seeds_fg);
+    float *bg = SSSP(img, seeds_bg);
     
     imagem *saida = new_image(img->rows, img->cols);
     
