@@ -1,0 +1,55 @@
+Determining if the pthread_create exist failed with the following output:
+Change Dir: /home/rmolines/github/imgseg/projeto/segmentacao_sequencial/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_51c37/fast"
+/usr/bin/make -f CMakeFiles/cmTC_51c37.dir/build.make CMakeFiles/cmTC_51c37.dir/build
+make[1]: Entering directory '/home/rmolines/github/imgseg/projeto/segmentacao_sequencial/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_51c37.dir/CheckSymbolExists.cxx.o
+/usr/bin/c++     -o CMakeFiles/cmTC_51c37.dir/CheckSymbolExists.cxx.o -c /home/rmolines/github/imgseg/projeto/segmentacao_sequencial/CMakeFiles/CMakeTmp/CheckSymbolExists.cxx
+Linking CXX executable cmTC_51c37
+/usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_51c37.dir/link.txt --verbose=1
+/usr/bin/c++       -rdynamic CMakeFiles/cmTC_51c37.dir/CheckSymbolExists.cxx.o  -o cmTC_51c37 
+CMakeFiles/cmTC_51c37.dir/CheckSymbolExists.cxx.o: In function `main':
+CheckSymbolExists.cxx:(.text+0x1b): undefined reference to `pthread_create'
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_51c37.dir/build.make:86: recipe for target 'cmTC_51c37' failed
+make[1]: *** [cmTC_51c37] Error 1
+make[1]: Leaving directory '/home/rmolines/github/imgseg/projeto/segmentacao_sequencial/CMakeFiles/CMakeTmp'
+Makefile:121: recipe for target 'cmTC_51c37/fast' failed
+make: *** [cmTC_51c37/fast] Error 2
+
+File /home/rmolines/github/imgseg/projeto/segmentacao_sequencial/CMakeFiles/CMakeTmp/CheckSymbolExists.cxx:
+/* */
+#include <pthread.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef pthread_create
+  return ((int*)(&pthread_create))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /home/rmolines/github/imgseg/projeto/segmentacao_sequencial/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_bf3ac/fast"
+/usr/bin/make -f CMakeFiles/cmTC_bf3ac.dir/build.make CMakeFiles/cmTC_bf3ac.dir/build
+make[1]: Entering directory '/home/rmolines/github/imgseg/projeto/segmentacao_sequencial/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_bf3ac.dir/CheckFunctionExists.cxx.o
+/usr/bin/c++    -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_bf3ac.dir/CheckFunctionExists.cxx.o -c /home/rmolines/github/imgseg/projeto/segmentacao_sequencial/CMakeFiles/CheckLibraryExists/CheckFunctionExists.cxx
+Linking CXX executable cmTC_bf3ac
+/usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_bf3ac.dir/link.txt --verbose=1
+/usr/bin/c++   -DCHECK_FUNCTION_EXISTS=pthread_create    -rdynamic CMakeFiles/cmTC_bf3ac.dir/CheckFunctionExists.cxx.o  -o cmTC_bf3ac -lpthreads 
+/usr/bin/ld: cannot find -lpthreads
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_bf3ac.dir/build.make:86: recipe for target 'cmTC_bf3ac' failed
+make[1]: *** [cmTC_bf3ac] Error 1
+make[1]: Leaving directory '/home/rmolines/github/imgseg/projeto/segmentacao_sequencial/CMakeFiles/CMakeTmp'
+Makefile:121: recipe for target 'cmTC_bf3ac/fast' failed
+make: *** [cmTC_bf3ac/fast] Error 2
+
+
