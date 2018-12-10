@@ -3,7 +3,7 @@
 #include <vector>
 #include <assert.h>
 #include <fstream>
-#include "nvgraph.h"
+#include <chrono>
 
 #include "imagem.h"
 
@@ -11,6 +11,9 @@ typedef std::pair<double, int> custo_caminho;
 
 typedef std::pair<double *, int *> result_sssp;
 
+typedef std::chrono::high_resolution_clock Time;
+
+using namespace std;
 
 struct compare_custo_caminho {
     bool operator()(custo_caminho &c1, custo_caminho &c2) {
@@ -18,23 +21,28 @@ struct compare_custo_caminho {
     }
 };
 
-result_sssp SSSP(imagem *img, int source) {
+result_sssp SSSP(imagem *img, vector <int> seeds, double &sssp_time, double &graph_time) {
+    Time::time_point t1, t2;
+
     std::priority_queue<custo_caminho, std::vector<custo_caminho>, compare_custo_caminho > Q;
     double *custos = new double[img->total_size];
     int *predecessor = new int[img->total_size];
     bool *analisado = new bool[img->total_size];
 
+    t1 = Time::now();
     result_sssp res(custos, predecessor);
     
     for (int i = 0; i < img->total_size; i++) {
         predecessor[i] =-1;
         custos[i] = __DBL_MAX__;
         analisado[i] = false;
-    }
+    };
 
-    Q.push(custo_caminho(0.0, source));
-    predecessor[source] = source;
-    custos[source] = 0.0;
+    for (int i = 0; i< seeds.size(); i++){
+        Q.push(custo_caminho(0.0, seeds[i]));
+        predecessor[seeds[i]] = seeds[i];
+        custos[seeds[i]] = 0.0;
+    }
 
     while (!Q.empty()) {
         custo_caminho cm = Q.top();
@@ -87,6 +95,9 @@ result_sssp SSSP(imagem *img, int source) {
             }
         }
     }
+
+    t2 = Time::now();
+    sssp_time += std::chrono::duration_cast<std::chrono::duration<double>> (t2-t1).count();
     
     delete[] analisado;
     
@@ -94,7 +105,7 @@ result_sssp SSSP(imagem *img, int source) {
 }
 
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv) { 
     if (argc < 3) {
         std::cout << "Uso:  segmentacao_sequencial entrada.pgm saida.pgm\n";
         return -1;
@@ -102,24 +113,36 @@ int main(int argc, char **argv) {
     std::string path(argv[1]);
     std::string path_output(argv[2]);
     imagem *img = read_pgm(path);
+
+    Time::time_point t1, t2;
+    double sssp_time, seg_img_time;
     
     int n_fg, n_bg;
+    vector<int> seeds_fg, seeds_bg;
     int x, y;
     
     std::cin >> n_fg >> n_bg;
-    assert(n_fg == 1);
-    assert(n_bg == 1);
+
+    for (int k = 0; k < n_fg; k++) {
+        std::cin >> x >> y;
+        int seed_fg = y * img->cols + x;
+        seeds_fg.push_back(seed_fg);
+    }
+     
+    for (int k = 0; k < n_bg; k++) {  
+        std::cin >> x >> y;
+        int seed_bg = y * img->cols + x;
+        seeds_bg.push_back(seed_bg);
+    }
     
-    std::cin >> x >> y;
-    int seed_fg = y * img->cols + x;
+    cout << "calculating SSSP for fg seeds..." << endl;
+    result_sssp fg = SSSP(img, seeds_fg, sssp_time, seg_img_time);
+
+    cout << "calculating SSSP for bg seeds..." << endl;
+    result_sssp bg = SSSP(img, seeds_bg, sssp_time, seg_img_time);
     
-    std::cin >> x >> y;
-    int seed_bg = y * img->cols + x;
-    
-    
-    result_sssp fg = SSSP(img, seed_fg);
-    result_sssp bg = SSSP(img, seed_bg);
-    
+    cout << "creating new image..." << endl;
+    t1 = Time::now();
     imagem *saida = new_image(img->rows, img->cols);
     
     for (int k = 0; k < saida->total_size; k++) {
@@ -131,5 +154,12 @@ int main(int argc, char **argv) {
     }
     
     write_pgm(saida, path_output);    
+    t2 = Time::now();
+    seg_img_time = std::chrono::duration_cast<std::chrono::duration<double>> (t2-t1).count();
+
+    cout << "Total time: " << sssp_time+seg_img_time << "s" << endl;
+    cout << "Solution time: " << sssp_time << "s" << endl;
+    cout << "Image creation time: " << seg_img_time << "s" << endl;
+
     return 0;
 }

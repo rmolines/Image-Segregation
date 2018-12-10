@@ -7,7 +7,9 @@
 #include <cstdio>
 #include <cmath>
 #include <algorithm>
-
+#include <cuda_runtime.h>
+#include <curand.h>
+#include <curand_kernel.h>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 
@@ -23,14 +25,9 @@ typedef std::pair<double *, int *> result_sssp;
 #define MIN(y,x) (y<x?y:x)    // Calcula valor minimo
 
 using namespace std;
-/* Rotina para somar dois vetores na GPU */ 
-__global__ void variance(double *a, double average, double *c, int N) {
-    int i=blockIdx.x * blockDim.x + threadIdx.x;
-    if (i<N) { 
-        c[i] = pow((a[i] - average), 2)/N;
-    }
-}
 
+
+// tentativa de filtro de borda
 __global__ void add_one(int *pixels, int *out, int height, int width) {
     int i=blockIdx.x * blockDim.x + threadIdx.x;
     int j=blockIdx.y * blockDim.y + threadIdx.y;
@@ -56,27 +53,33 @@ __global__ void add_one(int *pixels, int *out, int height, int width) {
     }
 }
 
- __global__ void edgeFilter(unsigned char *image_in, unsigned char *image_out, int rowStart, int rowEnd, int colStart, int colEnd)
+// cheguei muito perto de implementar, mas por algum motivo não ia. tive como base os código dado da na sua aula de quinta pra fazer essa função
+ __global__ void edge_filter(unsigned char *img, unsigned char *out, int rows, int cols)
  {
     int di,dj;
     int i=blockIdx.x * blockDim.x + threadIdx.x;
     int j=blockIdx.y * blockDim.y + threadIdx.y;
     
-    for(i = rowStart; i < rowEnd; ++i) 
+    for(i = 0; i < rows; ++i) 
     {
-       for(j = colStart; j < colEnd; ++j) 
+       for(j = 0; j < cols; ++j) 
        {
           int min = 256;
           int max = 0;
-         for(di = MAX(rowStart, i - 1); di <= MIN(i + 1, rowEnd - 1); di++) 
+         for(di = MAX(0, i - 1); di <= MIN(i + 1, rows - 1); di++) 
          {
-             for(dj = MAX(colStart, j - 1); dj <= MIN(j + 1, colEnd - 1); dj++) 
+             for(dj = MAX(0, j - 1); dj <= MIN(j + 1, cols - 1); dj++) 
              {
-                if(min>image_in[di*(colEnd-colStart)+dj]) min = image_in[di*(colEnd-colStart)+dj];
-                if(max<image_in[di*(colEnd-colStart)+dj]) max = image_in[di*(colEnd-colStart)+dj]; 
+                if(min>img[di*cols+dj]) {
+                    min = img[di*cols+dj];
+                }
+
+                if(max<img[di*cols+dj]) { 
+                    max = img[di*cols+dj]; 
+                }
              }
          }
-         image_out[i*(colEnd-colStart)+j] = max-min;
+         out[i*cols+j] = max-min;
        }
      }
  }
@@ -98,7 +101,7 @@ void blur(imagem *img) {
     dim3 dimBlock(16, 16, 1);
     // add_one<<<dimGrid,dimBlock>>>(thrust::raw_pointer_cast(values_gpu.data()), thrust::raw_pointer_cast(out_gpu.data()), img->rows, img->cols);
 
-    edgeFilter<<<dimGrid,dimBlock>>>(thrust::raw_pointer_cast(values_gpu.data()), thrust::raw_pointer_cast(out_gpu.data()), 0, img->rows, 0, img->cols);
+    edge_filter<<<dimGrid,dimBlock>>>(thrust::raw_pointer_cast(values_gpu.data()), thrust::raw_pointer_cast(out_gpu.data()), img->rows, img->cols);
 
     thrust::host_vector<double> new_img (out_gpu);
 
@@ -108,6 +111,7 @@ void blur(imagem *img) {
     }
    
 }
+
 
 struct compare_custo_caminho {
     bool operator()(custo_caminho &c1, custo_caminho &c2) {
@@ -244,6 +248,12 @@ float *SSSP(imagem *img, vector<int> seeds) {
 
 
 int main(int argc, char **argv) {
+
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    float total_time=0.0, seg_img_time=0.0, sssp_time=0.0, graph_time=0.0;
+
     if (argc < 3) {
         cout << "Uso:  segmentacao_sequencial entrada.pgm saida.pgm\n";
         return -1;
@@ -271,15 +281,31 @@ int main(int argc, char **argv) {
         int seed_bg = y * img->cols + x;
         seeds_bg.push_back(seed_bg);
     }
+
     
-    
+    cudaEventRecord(start);
+    cout << "detecting edges..." << endl;
     blur(img);
 
+
+    cout << "calculating SSSP for fg seeds..." << endl;
     float *fg = SSSP(img, seeds_fg);
+
+    cout << "calculating SSSP for bg seeds..." << endl;
     float *bg = SSSP(img, seeds_bg);
+
+
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&graph_time, start, stop); 
+    
     
     imagem *saida = new_image(img->rows, img->cols);
     
+    cout << "creating new image..." << endl;
+
+    cudaEventRecord(start);
+
     for (int k = 0; k < saida->total_size; k++) {
         if (fg[k] > bg[k]) {
             saida->pixels[k] = 0;
@@ -287,7 +313,19 @@ int main(int argc, char **argv) {
             saida->pixels[k] = 255;
         }
     }
-    
-    write_pgm(saida, path_output);    
+
+ 
+    write_pgm(saida, path_output);   
+       
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&seg_img_time, start, stop); 
+
+
+    printf("Total time: %fs\n", graph_time/1000+seg_img_time/1000);
+    printf("Graph + Solution time: %fs\n", graph_time/1000);
+    printf("Image creation time: %fs\n", seg_img_time/1000);
+
+
     return 0;
 }
