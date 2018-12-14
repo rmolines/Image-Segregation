@@ -27,61 +27,32 @@ typedef std::pair<double *, int *> result_sssp;
 using namespace std;
 
 
-// tentativa de filtro de borda
-__global__ void add_one(int *pixels, int *out, int height, int width) {
-    int i=blockIdx.x * blockDim.x + threadIdx.x;
-    int j=blockIdx.y * blockDim.y + threadIdx.y;
-
-    double local_avg = 0;
-    if (i < height && j < width) {
-        for (int k=-1; k<2; k++){   
-            for (int l=-1; l<2; l++){
-                if (i+k < 16 && i+k > -1 &&
-                    j+l < 16 && j+l > -1)
-                {    
-                    // printf("%d, %d, %d, %d\n", i+k, j+l, (i+k) * width + j+l, (pixels[(i+k) * width + j+l])); 
-                    local_avg+=(double)pixels[(i+k) * width + j+l]/9; 
-                }
-            }
-        } 
-        // printf("%f\n", local_avg);
-        if (pixels[i*width+j] > local_avg){
-            out[i*width+j] = 255;
-        } else {
-            out[i*width+j] = 0;
-        }
-    }
-}
-
-// cheguei muito perto de implementar, mas por algum motivo não ia. tive como base os código dado da na sua aula de quinta pra fazer essa função
  __global__ void edge_filter(unsigned char *img, unsigned char *out, int rows, int cols)
  {
     int di,dj;
     int i=blockIdx.x * blockDim.x + threadIdx.x;
     int j=blockIdx.y * blockDim.y + threadIdx.y;
     
-    for(i = 0; i < rows; ++i) 
-    {
-       for(j = 0; j < cols; ++j) 
-       {
-          int min = 256;
-          int max = 0;
-         for(di = MAX(0, i - 1); di <= MIN(i + 1, rows - 1); di++) 
-         {
-             for(dj = MAX(0, j - 1); dj <= MIN(j + 1, cols - 1); dj++) 
-             {
-                if(min>img[di*cols+dj]) {
-                    min = img[di*cols+dj];
-                }
+    if (i< rows && j< cols) {
 
-                if(max<img[di*cols+dj]) { 
-                    max = img[di*cols+dj]; 
-                }
-             }
-         }
-         out[i*cols+j] = max-min;
-       }
-     }
+        int min = 256;
+        int max = 0;
+        for(di = MAX(0, i - 1); di <= MIN(i + 1, rows - 1); di++) 
+        {
+            for(dj = MAX(0, j - 1); dj <= MIN(j + 1, cols - 1); dj++) 
+            {
+            if(min>img[di*cols+dj]) {
+                min = img[di*cols+dj];
+            }
+
+            if(max<img[di*cols+dj]) { 
+                max = img[di*cols+dj]; 
+            }
+            }
+        }
+        out[i*cols+j] = max-min;
+    }
+     
  }
 
 /* Programa cria dois vetores e soma eles em GPU */
